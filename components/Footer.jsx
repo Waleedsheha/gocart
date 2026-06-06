@@ -14,10 +14,10 @@ const Footer = () => {
         {
             title: "PRODUCTS",
             links: [
-                { text: "Earphones", path: '/', icon: null },
-                { text: "Headphones", path: '/', icon: null },
-                { text: "Smartphones", path: '/', icon: null },
-                { text: "Laptops", path: '/', icon: null },
+                { text: "Earbuds", path: '/shop?search=Earbuds', icon: null },
+                { text: "Headphones", path: '/shop?search=Headphones', icon: null },
+                { text: "Watches", path: '/shop?search=Watch', icon: null },
+                { text: "Speakers", path: '/shop?search=Speakers', icon: null },
             ]
         },
         {
@@ -32,9 +32,9 @@ const Footer = () => {
         {
             title: "CONTACT",
             links: [
-                { text: "+1-212-456-7890", path: '/', icon: MailIcon },
-                { text: "contact@example.com", path: '/', icon: PhoneIcon },
-                { text: "794 Francisco, 94102", path: '/', icon: MapPinIcon }
+                { text: "+1-212-456-7890", path: 'tel:+12124567890', icon: PhoneIcon },
+                { text: "contact@example.com", path: 'mailto:contact@example.com', icon: MailIcon },
+                { text: "794 Francisco, 94102", path: 'https://maps.google.com/?q=794%20Francisco%2094102', icon: MapPinIcon }
             ]
         }
     ];
@@ -47,7 +47,7 @@ const Footer = () => {
     ]
 
     return (
-        <footer className="mx-6 bg-white">
+        <footer id="contact" className="mx-6 bg-white">
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row items-start justify-between gap-10 py-10 border-b border-slate-500/30 text-slate-500">
                     <div>

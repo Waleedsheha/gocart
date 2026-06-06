@@ -1,7 +1,10 @@
 'use client'
-import { assets } from "@/assets/assets"
+import { assets, dummyStoreData } from "@/assets/assets"
+import { addProduct } from "@/lib/features/product/productSlice"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useDispatch } from "react-redux"
 import { toast } from "react-hot-toast"
 
 export default function StoreAddProduct() {
@@ -18,6 +21,15 @@ export default function StoreAddProduct() {
     })
     const [loading, setLoading] = useState(false)
 
+    const dispatch = useDispatch()
+    const router = useRouter()
+
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(new Error('Unable to read image'))
+        reader.readAsDataURL(file)
+    })
 
     const onChangeHandler = (e) => {
         setProductInfo({ ...productInfo, [e.target.name]: e.target.value })
@@ -25,13 +37,84 @@ export default function StoreAddProduct() {
 
     const onSubmitHandler = async (e) => {
         e.preventDefault()
-        // Logic to add a product
-        
+        setLoading(true)
+
+        try {
+            const selectedImages = Object.values(images).filter(Boolean)
+            const mrp = Number(productInfo.mrp)
+            const price = Number(productInfo.price)
+
+            if (selectedImages.length === 0) {
+                throw new Error('Please add at least one product image')
+            }
+
+            if (!productInfo.name.trim() || !productInfo.description.trim() || !productInfo.category) {
+                throw new Error('Please complete all product details')
+            }
+
+            if (!Number.isFinite(mrp) || !Number.isFinite(price) || mrp <= 0 || price <= 0) {
+                throw new Error('Product prices must be greater than zero')
+            }
+
+            if (price > mrp) {
+                throw new Error('Offer price cannot be higher than actual price')
+            }
+
+            let store = dummyStoreData
+            try {
+                const application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
+                if (application?.status === 'approved') {
+                    store = application
+                }
+            } catch {
+                store = dummyStoreData
+            }
+
+            const imageUrls = await Promise.all(selectedImages.map(readFileAsDataUrl))
+            const product = {
+                id: `prod_${Date.now()}`,
+                name: productInfo.name.trim(),
+                description: productInfo.description.trim(),
+                mrp,
+                price,
+                images: imageUrls,
+                category: productInfo.category,
+                storeId: store.id,
+                inStock: true,
+                store,
+                rating: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }
+
+            dispatch(addProduct(product))
+
+            let savedProducts = []
+            try {
+                savedProducts = JSON.parse(localStorage.getItem('gocart_products') || '[]')
+            } catch {
+                savedProducts = []
+            }
+            const nextSavedProducts = Array.isArray(savedProducts)
+                ? [product, ...savedProducts.filter(savedProduct => savedProduct.id !== product.id)]
+                : [product]
+            localStorage.setItem('gocart_products', JSON.stringify(nextSavedProducts))
+
+            setImages({ 1: null, 2: null, 3: null, 4: null })
+            setProductInfo({ name: "", description: "", mrp: 0, price: 0, category: "" })
+            router.push('/store/manage-product')
+        } finally {
+            setLoading(false)
+        }
     }
 
 
     return (
-        <form onSubmit={e => toast.promise(onSubmitHandler(e), { loading: "Adding Product..." })} className="text-slate-500 mb-28">
+        <form onSubmit={e => toast.promise(onSubmitHandler(e), {
+            loading: "Adding Product...",
+            success: "Product added successfully",
+            error: (error) => error.message || "Unable to add product",
+        })} className="text-slate-500 mb-28">
             <h1 className="text-2xl">Add New <span className="text-slate-800 font-medium">Products</span></h1>
             <p className="mt-7">Product Images</p>
 
@@ -39,7 +122,7 @@ export default function StoreAddProduct() {
                 {Object.keys(images).map((key) => (
                     <label key={key} htmlFor={`images${key}`}>
                         <Image width={300} height={300} className='h-15 w-auto border border-slate-200 rounded cursor-pointer' src={images[key] ? URL.createObjectURL(images[key]) : assets.upload_area} alt="" />
-                        <input type="file" accept='image/*' id={`images${key}`} onChange={e => setImages({ ...images, [key]: e.target.files[0] })} hidden />
+                        <input type="file" accept='image/*' id={`images${key}`} onChange={e => setImages({ ...images, [key]: e.target.files?.[0] || null })} hidden />
                     </label>
                 ))}
             </div>
@@ -74,7 +157,7 @@ export default function StoreAddProduct() {
 
             <br />
 
-            <button disabled={loading} className="bg-slate-800 text-white px-6 mt-7 py-2 hover:bg-slate-900 rounded transition">Add Product</button>
+            <button disabled={loading} className="bg-slate-800 text-white px-6 mt-7 py-2 hover:bg-slate-900 rounded transition disabled:opacity-60">Add Product</button>
         </form>
     )
 }

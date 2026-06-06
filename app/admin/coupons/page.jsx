@@ -20,13 +20,56 @@ export default function AdminCoupons() {
     })
 
     const fetchCoupons = async () => {
-        setCoupons(couponDummyData)
+        let savedCoupons = null
+        try {
+            const savedValue = localStorage.getItem('gocart_coupons')
+            savedCoupons = savedValue ? JSON.parse(savedValue) : null
+        } catch {
+            savedCoupons = null
+        }
+
+        setCoupons(Array.isArray(savedCoupons) ? savedCoupons : couponDummyData)
     }
 
     const handleAddCoupon = async (e) => {
         e.preventDefault()
-        // Logic to add a coupon
 
+        const code = newCoupon.code.trim().toUpperCase()
+        const discount = Number(newCoupon.discount)
+
+        if (!code) {
+            throw new Error('Coupon code is required')
+        }
+
+        if (coupons.some(coupon => coupon.code.toUpperCase() === code)) {
+            throw new Error('Coupon code already exists')
+        }
+
+        if (!Number.isFinite(discount) || discount < 1 || discount > 100) {
+            throw new Error('Discount must be between 1 and 100')
+        }
+
+        const coupon = {
+            ...newCoupon,
+            code,
+            description: newCoupon.description.trim(),
+            discount,
+            expiresAt: new Date(newCoupon.expiresAt).toISOString(),
+            createdAt: new Date().toISOString(),
+        }
+
+        const nextCoupons = [coupon, ...coupons]
+        setCoupons(nextCoupons)
+        localStorage.setItem('gocart_coupons', JSON.stringify(nextCoupons))
+        setNewCoupon({
+            code: '',
+            description: '',
+            discount: '',
+            forNewUser: false,
+            forMember: false,
+            isPublic: false,
+            expiresAt: new Date()
+        })
 
     }
 
@@ -35,9 +78,9 @@ export default function AdminCoupons() {
     }
 
     const deleteCoupon = async (code) => {
-        // Logic to delete a coupon
-
-
+        const nextCoupons = coupons.filter(coupon => coupon.code !== code)
+        setCoupons(nextCoupons)
+        localStorage.setItem('gocart_coupons', JSON.stringify(nextCoupons))
     }
 
     useEffect(() => {
@@ -48,7 +91,11 @@ export default function AdminCoupons() {
         <div className="text-slate-500 mb-40">
 
             {/* Add Coupon */}
-            <form onSubmit={(e) => toast.promise(handleAddCoupon(e), { loading: "Adding coupon..." })} className="max-w-sm text-sm">
+            <form onSubmit={(e) => toast.promise(handleAddCoupon(e), {
+                loading: "Adding coupon...",
+                success: "Coupon added",
+                error: (error) => error.message || "Unable to add coupon",
+            })} className="max-w-sm text-sm">
                 <h2 className="text-2xl">Add <span className="text-slate-800 font-medium">Coupons</span></h2>
                 <div className="flex gap-2 max-sm:flex-col mt-2">
                     <input type="text" placeholder="Coupon Code" className="w-full mt-2 p-2 border border-slate-200 outline-slate-400 rounded-md"
@@ -122,7 +169,11 @@ export default function AdminCoupons() {
                                     <td className="py-3 px-4 text-slate-800">{coupon.forNewUser ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">{coupon.forMember ? 'Yes' : 'No'}</td>
                                     <td className="py-3 px-4 text-slate-800">
-                                        <DeleteIcon onClick={() => toast.promise(deleteCoupon(coupon.code), { loading: "Deleting coupon..." })} className="w-5 h-5 text-red-500 hover:text-red-800 cursor-pointer" />
+                                        <DeleteIcon onClick={() => toast.promise(deleteCoupon(coupon.code), {
+                                            loading: "Deleting coupon...",
+                                            success: "Coupon deleted",
+                                            error: "Unable to delete coupon",
+                                        })} className="w-5 h-5 text-red-500 hover:text-red-800 cursor-pointer" />
                                     </td>
                                 </tr>
                             ))}

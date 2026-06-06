@@ -27,6 +27,9 @@ import { useSelector } from "react-redux"
                 <div className="grid grid-cols-2 sm:flex flex-wrap gap-6 xl:gap-12 mx-auto mb-32">
                     {filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)}
                 </div>
+                {filteredProducts.length === 0 && (
+                    <p className="text-slate-400 text-center my-20">No products found.</p>
+                )}
             </div>
         </div>
     )

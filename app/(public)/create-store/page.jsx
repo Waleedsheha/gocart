@@ -1,11 +1,14 @@
 'use client'
-import { assets } from "@/assets/assets"
+import { assets, dummyUserData } from "@/assets/assets"
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import toast from "react-hot-toast"
 import Loading from "@/components/Loading"
+import { useRouter } from "next/navigation"
 
 export default function CreateStore() {
+
+    const router = useRouter()
 
     const [alreadySubmitted, setAlreadySubmitted] = useState(false)
     const [status, setStatus] = useState("")
@@ -26,16 +29,67 @@ export default function CreateStore() {
         setStoreInfo({ ...storeInfo, [e.target.name]: e.target.value })
     }
 
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(new Error('Unable to read store logo'))
+        reader.readAsDataURL(file)
+    })
+
     const fetchSellerStatus = async () => {
-        // Logic to check if the store is already submitted
+        let application = null
+        try {
+            application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
+        } catch {
+            application = null
+        }
 
-
+        if (application?.status) {
+            setAlreadySubmitted(true)
+            setStatus(application.status)
+            setMessage(
+                application.status === 'approved'
+                    ? 'Your store has been approved.'
+                    : application.status === 'rejected'
+                        ? 'Your store application was rejected. Please contact support before submitting again.'
+                        : 'Your store application is pending admin review.'
+            )
+        }
         setLoading(false)
     }
 
     const onSubmitHandler = async (e) => {
         e.preventDefault()
-        // Logic to submit the store details
+
+        if (!storeInfo.username.trim() || !storeInfo.name.trim() || !storeInfo.description.trim() || !storeInfo.email.trim() || !storeInfo.contact.trim() || !storeInfo.address.trim()) {
+            throw new Error('Please complete all store details')
+        }
+
+        const logo = storeInfo.image
+            ? await readFileAsDataUrl(storeInfo.image)
+            : assets.upload_area.src
+
+        const application = {
+            id: `store_${Date.now()}`,
+            userId: dummyUserData.id,
+            name: storeInfo.name.trim(),
+            description: storeInfo.description.trim(),
+            username: storeInfo.username.trim().toLowerCase().replace(/\s+/g, ''),
+            address: storeInfo.address.trim(),
+            status: 'pending',
+            isActive: false,
+            logo,
+            email: storeInfo.email.trim(),
+            contact: storeInfo.contact.trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            user: dummyUserData,
+        }
+
+        localStorage.setItem('gocart_store_application', JSON.stringify(application))
+        setAlreadySubmitted(true)
+        setStatus(application.status)
+        setMessage('Your store application is pending admin review.')
 
 
     }
@@ -44,11 +98,25 @@ export default function CreateStore() {
         fetchSellerStatus()
     }, [])
 
+    useEffect(() => {
+        if (status !== 'approved') return
+
+        const timeoutId = setTimeout(() => {
+            router.push('/store')
+        }, 5000)
+
+        return () => clearTimeout(timeoutId)
+    }, [router, status])
+
     return !loading ? (
         <>
             {!alreadySubmitted ? (
                 <div className="mx-6 min-h-[70vh] my-16">
-                    <form onSubmit={e => toast.promise(onSubmitHandler(e), { loading: "Submitting data..." })} className="max-w-7xl mx-auto flex flex-col items-start gap-3 text-slate-500">
+                    <form onSubmit={e => toast.promise(onSubmitHandler(e), {
+                        loading: "Submitting data...",
+                        success: "Store application submitted",
+                        error: (error) => error.message || "Unable to submit store",
+                    })} className="max-w-7xl mx-auto flex flex-col items-start gap-3 text-slate-500">
                         {/* Title */}
                         <div>
                             <h1 className="text-3xl ">Add Your <span className="text-slate-800 font-medium">Store</span></h1>
@@ -62,22 +130,22 @@ export default function CreateStore() {
                         </label>
 
                         <p>Username</p>
-                        <input name="username" onChange={onChangeHandler} value={storeInfo.username} type="text" placeholder="Enter your store username" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" />
+                        <input name="username" onChange={onChangeHandler} value={storeInfo.username} type="text" placeholder="Enter your store username" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" required />
 
                         <p>Name</p>
-                        <input name="name" onChange={onChangeHandler} value={storeInfo.name} type="text" placeholder="Enter your store name" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" />
+                        <input name="name" onChange={onChangeHandler} value={storeInfo.name} type="text" placeholder="Enter your store name" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" required />
 
                         <p>Description</p>
-                        <textarea name="description" onChange={onChangeHandler} value={storeInfo.description} rows={5} placeholder="Enter your store description" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded resize-none" />
+                        <textarea name="description" onChange={onChangeHandler} value={storeInfo.description} rows={5} placeholder="Enter your store description" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded resize-none" required />
 
                         <p>Email</p>
-                        <input name="email" onChange={onChangeHandler} value={storeInfo.email} type="email" placeholder="Enter your store email" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" />
+                        <input name="email" onChange={onChangeHandler} value={storeInfo.email} type="email" placeholder="Enter your store email" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" required />
 
                         <p>Contact Number</p>
-                        <input name="contact" onChange={onChangeHandler} value={storeInfo.contact} type="text" placeholder="Enter your store contact number" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" />
+                        <input name="contact" onChange={onChangeHandler} value={storeInfo.contact} type="text" placeholder="Enter your store contact number" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded" required />
 
                         <p>Address</p>
-                        <textarea name="address" onChange={onChangeHandler} value={storeInfo.address} rows={5} placeholder="Enter your store address" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded resize-none" />
+                        <textarea name="address" onChange={onChangeHandler} value={storeInfo.address} rows={5} placeholder="Enter your store address" className="border border-slate-300 outline-slate-400 w-full max-w-lg p-2 rounded resize-none" required />
 
                         <button className="bg-slate-800 text-white px-12 py-2 rounded mt-10 mb-40 active:scale-95 hover:bg-slate-900 transition ">Submit</button>
                     </form>

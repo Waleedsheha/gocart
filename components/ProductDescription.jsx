@@ -7,6 +7,7 @@ import { useState } from "react"
 const ProductDescription = ({ product }) => {
 
     const [selectedTab, setSelectedTab] = useState('Description')
+    const ratings = Array.isArray(product.rating) ? product.rating : []
 
     return (
         <div className="my-18 text-sm text-slate-600">
@@ -28,7 +29,10 @@ const ProductDescription = ({ product }) => {
             {/* Reviews */}
             {selectedTab === "Reviews" && (
                 <div className="flex flex-col gap-3 mt-14">
-                    {product.rating.map((item,index) => (
+                    {ratings.length === 0 && (
+                        <p className="text-slate-400">No reviews yet.</p>
+                    )}
+                    {ratings.map((item,index) => (
                         <div key={index} className="flex gap-5 mb-10">
                             <Image src={item.user.image} alt="" className="size-10 rounded-full" width={100} height={100} />
                             <div>
@@ -47,13 +51,15 @@ const ProductDescription = ({ product }) => {
             )}
 
             {/* Store Page */}
-            <div className="flex gap-3 mt-14">
-                <Image src={product.store.logo} alt="" className="size-11 rounded-full ring ring-slate-400" width={100} height={100} />
-                <div>
-                    <p className="font-medium text-slate-600">Product by {product.store.name}</p>
-                    <Link href={`/shop/${product.store.username}`} className="flex items-center gap-1.5 text-green-500"> view store <ArrowRight size={14} /></Link>
+            {product.store && (
+                <div className="flex gap-3 mt-14">
+                    <Image src={product.store.logo} alt="" className="size-11 rounded-full ring ring-slate-400" width={100} height={100} />
+                    <div>
+                        <p className="font-medium text-slate-600">Product by {product.store.name}</p>
+                        <Link href={`/shop/${product.store.username}`} className="flex items-center gap-1.5 text-green-500"> view store <ArrowRight size={14} /></Link>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }

@@ -9,7 +9,17 @@ export default function Orders() {
     const [orders, setOrders] = useState([]);
 
     useEffect(() => {
-        setOrders(orderDummyData)
+        let savedOrders = [];
+        try {
+            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]');
+        } catch {
+            savedOrders = [];
+        }
+
+        setOrders([
+            ...(Array.isArray(savedOrders) ? savedOrders : []),
+            ...orderDummyData,
+        ])
     }, []);
 
     return (

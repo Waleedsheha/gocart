@@ -5,7 +5,8 @@ import { useEffect, useState } from "react"
 import { MailIcon, MapPinIcon } from "lucide-react"
 import Loading from "@/components/Loading"
 import Image from "next/image"
-import { dummyStoreData, productDummyData } from "@/assets/assets"
+import { dummyStoreData } from "@/assets/assets"
+import { useSelector } from "react-redux"
 
 export default function StoreShop() {
 
@@ -13,16 +14,27 @@ export default function StoreShop() {
     const [products, setProducts] = useState([])
     const [storeInfo, setStoreInfo] = useState(null)
     const [loading, setLoading] = useState(true)
+    const allProducts = useSelector(state => state.product.list)
 
     const fetchStoreData = async () => {
-        setStoreInfo(dummyStoreData)
-        setProducts(productDummyData)
+        let store = dummyStoreData
+        try {
+            const application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
+            if (application?.status === 'approved' && application.username === username) {
+                store = application
+            }
+        } catch {
+            store = dummyStoreData
+        }
+
+        setStoreInfo(store)
+        setProducts(allProducts.filter(product => product.storeId === store.id || product.store?.username === store.username))
         setLoading(false)
     }
 
     useEffect(() => {
         fetchStoreData()
-    }, [])
+    }, [username, allProducts])
 
     return !loading ? (
         <div className="min-h-[70vh] mx-6">
@@ -62,6 +74,9 @@ export default function StoreShop() {
                 <div className="mt-5 grid grid-cols-2 sm:flex flex-wrap gap-6 xl:gap-12 mx-auto">
                     {products.map((product) => <ProductCard key={product.id} product={product} />)}
                 </div>
+                {products.length === 0 && (
+                    <p className="text-slate-400 text-center my-20">No products found for this store.</p>
+                )}
             </div>
         </div>
     ) : <Loading />

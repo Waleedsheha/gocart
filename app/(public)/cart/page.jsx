@@ -21,19 +21,20 @@ export default function Cart() {
     const [totalPrice, setTotalPrice] = useState(0);
 
     const createCartArray = () => {
-        setTotalPrice(0);
-        const cartArray = [];
+        const nextCartArray = [];
+        let nextTotalPrice = 0;
         for (const [key, value] of Object.entries(cartItems)) {
             const product = products.find(product => product.id === key);
             if (product) {
-                cartArray.push({
+                nextCartArray.push({
                     ...product,
                     quantity: value,
                 });
-                setTotalPrice(prev => prev + product.price * value);
+                nextTotalPrice += product.price * value;
             }
         }
-        setCartArray(cartArray);
+        setCartArray(nextCartArray);
+        setTotalPrice(nextTotalPrice);
     }
 
     const handleDeleteItemFromCart = (productId) => {
@@ -51,7 +52,7 @@ export default function Cart() {
 
             <div className="max-w-7xl mx-auto ">
                 {/* Title */}
-                <PageTitle heading="My Cart" text="items in your cart" linkText="Add more" />
+                <PageTitle heading="My Cart" text="items in your cart" linkText="Add more" path="/shop" />
 
                 <div className="flex items-start justify-between gap-5 max-lg:flex-col">
 

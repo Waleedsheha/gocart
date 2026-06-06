@@ -1,15 +1,18 @@
 import { PlusIcon, SquarePenIcon, XIcon } from 'lucide-react';
 import React, { useState } from 'react'
 import AddressModal from './AddressModal';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { couponDummyData, dummyUserData } from '@/assets/assets';
+import { clearCart } from '@/lib/features/cart/cartSlice';
 
 const OrderSummary = ({ totalPrice, items }) => {
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
 
     const router = useRouter();
+    const dispatch = useDispatch();
 
     const addressList = useSelector(state => state.address.list);
 
@@ -17,16 +20,87 @@ const OrderSummary = ({ totalPrice, items }) => {
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [couponCodeInput, setCouponCodeInput] = useState('');
-    const [coupon, setCoupon] = useState('');
+    const [coupon, setCoupon] = useState(null);
 
     const handleCouponCode = async (event) => {
         event.preventDefault();
-        
+
+        const code = couponCodeInput.trim().toUpperCase();
+        if (!code) {
+            throw new Error('Enter a coupon code');
+        }
+
+        let availableCoupons = couponDummyData;
+        try {
+            const savedCoupons = localStorage.getItem('gocart_coupons');
+            if (savedCoupons !== null) {
+                const parsedCoupons = JSON.parse(savedCoupons);
+                availableCoupons = Array.isArray(parsedCoupons) ? parsedCoupons : couponDummyData;
+            }
+        } catch {
+            availableCoupons = couponDummyData;
+        }
+
+        const matchedCoupon = availableCoupons.find(item => item.code.toUpperCase() === code);
+        if (!matchedCoupon) {
+            throw new Error('Coupon code is not valid');
+        }
+
+        if (new Date(matchedCoupon.expiresAt) < new Date()) {
+            throw new Error('Coupon code has expired');
+        }
+
+        setCoupon(matchedCoupon);
+        setCouponCodeInput('');
     }
 
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
 
+        if (!items.length) {
+            throw new Error('Your cart is empty');
+        }
+
+        if (!selectedAddress) {
+            throw new Error('Please select a delivery address');
+        }
+
+        const discount = coupon ? coupon.discount / 100 * totalPrice : 0;
+        const orderId = `order_${Date.now()}`;
+        const order = {
+            id: orderId,
+            total: Number((totalPrice - discount).toFixed(2)),
+            status: "ORDER_PLACED",
+            userId: dummyUserData.id,
+            storeId: items[0]?.storeId,
+            addressId: selectedAddress.id,
+            isPaid: paymentMethod === 'STRIPE',
+            paymentMethod,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isCouponUsed: Boolean(coupon),
+            coupon,
+            orderItems: items.map(item => ({
+                orderId,
+                productId: item.id,
+                quantity: item.quantity,
+                price: item.price,
+                product: item,
+            })),
+            address: selectedAddress,
+            user: dummyUserData,
+        }
+
+        let savedOrders = [];
+        try {
+            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]');
+        } catch {
+            savedOrders = [];
+        }
+        const nextOrders = Array.isArray(savedOrders) ? [order, ...savedOrders] : [order];
+        localStorage.setItem('gocart_orders', JSON.stringify(nextOrders));
+
+        dispatch(clearCart());
         router.push('/orders')
     }
 
@@ -35,7 +109,7 @@ const OrderSummary = ({ totalPrice, items }) => {
             <h2 className='text-xl font-medium text-slate-600'>Payment Summary</h2>
             <p className='text-slate-400 text-xs my-4'>Payment Method</p>
             <div className='flex gap-2 items-center'>
-                <input type="radio" id="COD" onChange={() => setPaymentMethod('COD')} checked={paymentMethod === 'COD'} className='accent-gray-500' />
+                <input type="radio" id="COD" name='payment' onChange={() => setPaymentMethod('COD')} checked={paymentMethod === 'COD'} className='accent-gray-500' />
                 <label htmlFor="COD" className='cursor-pointer'>COD</label>
             </div>
             <div className='flex gap-2 items-center mt-1'>
@@ -54,7 +128,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                         <div>
                             {
                                 addressList.length > 0 && (
-                                    <select className='border border-slate-400 p-2 w-full my-3 outline-none rounded' onChange={(e) => setSelectedAddress(addressList[e.target.value])} >
+                                    <select className='border border-slate-400 p-2 w-full my-3 outline-none rounded' onChange={(e) => setSelectedAddress(e.target.value ? addressList[Number(e.target.value)] : null)} >
                                         <option value="">Select Address</option>
                                         {
                                             addressList.map((address, index) => (
@@ -64,7 +138,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                                     </select>
                                 )
                             }
-                            <button className='flex items-center gap-1 text-slate-600 mt-1' onClick={() => setShowAddressModal(true)} >Add Address <PlusIcon size={18} /></button>
+                            <button type='button' className='flex items-center gap-1 text-slate-600 mt-1' onClick={() => setShowAddressModal(true)} >Add Address <PlusIcon size={18} /></button>
                         </div>
                     )
                 }
@@ -84,7 +158,11 @@ const OrderSummary = ({ totalPrice, items }) => {
                 </div>
                 {
                     !coupon ? (
-                        <form onSubmit={e => toast.promise(handleCouponCode(e), { loading: 'Checking Coupon...' })} className='flex justify-center gap-3 mt-3'>
+                        <form onSubmit={e => toast.promise(handleCouponCode(e), {
+                            loading: 'Checking Coupon...',
+                            success: 'Coupon applied',
+                            error: (error) => error.message || 'Unable to apply coupon',
+                        })} className='flex justify-center gap-3 mt-3'>
                             <input onChange={(e) => setCouponCodeInput(e.target.value)} value={couponCodeInput} type="text" placeholder='Coupon Code' className='border border-slate-400 p-1.5 rounded w-full outline-none' />
                             <button className='bg-slate-600 text-white px-3 rounded hover:bg-slate-800 active:scale-95 transition-all'>Apply</button>
                         </form>
@@ -92,7 +170,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                         <div className='w-full flex items-center justify-center gap-2 text-xs mt-2'>
                             <p>Code: <span className='font-semibold ml-1'>{coupon.code.toUpperCase()}</span></p>
                             <p>{coupon.description}</p>
-                            <XIcon size={18} onClick={() => setCoupon('')} className='hover:text-red-700 transition cursor-pointer' />
+                            <XIcon size={18} onClick={() => setCoupon(null)} className='hover:text-red-700 transition cursor-pointer' />
                         </div>
                     )
                 }
@@ -101,9 +179,13 @@ const OrderSummary = ({ totalPrice, items }) => {
                 <p>Total:</p>
                 <p className='font-medium text-right'>{currency}{coupon ? (totalPrice - (coupon.discount / 100 * totalPrice)).toFixed(2) : totalPrice.toLocaleString()}</p>
             </div>
-            <button onClick={e => toast.promise(handlePlaceOrder(e), { loading: 'placing Order...' })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
+            <button onClick={e => toast.promise(handlePlaceOrder(e), {
+                loading: 'Placing order...',
+                success: 'Order placed successfully',
+                error: (error) => error.message || 'Unable to place order',
+            })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
 
-            {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} />}
+            {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} onAddressAdded={setSelectedAddress} />}
 
         </div>
     )

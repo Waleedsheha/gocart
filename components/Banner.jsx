@@ -6,10 +6,14 @@ export default function Banner() {
 
     const [isOpen, setIsOpen] = React.useState(true);
 
-    const handleClaim = () => {
+    const handleClaim = async () => {
         setIsOpen(false);
-        toast.success('Coupon copied to clipboard!');
-        navigator.clipboard.writeText('NEW20');
+        try {
+            await navigator.clipboard.writeText('NEW20');
+            toast.success('Coupon copied to clipboard!');
+        } catch {
+            toast.success('Use coupon code NEW20 at checkout');
+        }
     };
 
     return isOpen && (

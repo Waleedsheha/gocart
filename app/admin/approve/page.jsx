@@ -12,14 +12,32 @@ export default function AdminApprove() {
 
 
     const fetchStores = async () => {
-        setStores(storesDummyData)
+        let application = null
+        try {
+            application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
+        } catch {
+            application = null
+        }
+
+        setStores([
+            ...(application?.status === 'pending' ? [application] : []),
+            ...storesDummyData.filter(store => store.status === 'pending'),
+        ])
         setLoading(false)
     }
 
     const handleApprove = async ({ storeId, status }) => {
-        // Logic to approve a store
-
-
+        const store = stores.find(store => store.id === storeId)
+        if (store) {
+            localStorage.setItem('gocart_store_application', JSON.stringify({
+                ...store,
+                status,
+                isActive: status === 'approved',
+                updatedAt: new Date().toISOString(),
+            }))
+        }
+        setStores(prev => prev.filter(store => store.id !== storeId))
+        return status
     }
 
     useEffect(() => {
@@ -39,10 +57,18 @@ export default function AdminApprove() {
 
                             {/* Actions */}
                             <div className="flex gap-3 pt-2 flex-wrap">
-                                <button onClick={() => toast.promise(handleApprove({ storeId: store.id, status: 'approved' }), { loading: "approving" })} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm" >
+                                <button onClick={() => toast.promise(handleApprove({ storeId: store.id, status: 'approved' }), {
+                                    loading: "approving",
+                                    success: "Store approved",
+                                    error: "Unable to approve store",
+                                })} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm" >
                                     Approve
                                 </button>
-                                <button onClick={() => toast.promise(handleApprove({ storeId: store.id, status: 'rejected' }), { loading: 'rejecting' })} className="px-4 py-2 bg-slate-500 text-white rounded hover:bg-slate-600 text-sm" >
+                                <button onClick={() => toast.promise(handleApprove({ storeId: store.id, status: 'rejected' }), {
+                                    loading: 'rejecting',
+                                    success: "Store rejected",
+                                    error: "Unable to reject store",
+                                })} className="px-4 py-2 bg-slate-500 text-white rounded hover:bg-slate-600 text-sm" >
                                     Reject
                                 </button>
                             </div>

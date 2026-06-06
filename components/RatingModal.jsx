@@ -4,20 +4,27 @@ import { Star } from 'lucide-react';
 import React, { useState } from 'react'
 import { XIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { addRating } from '@/lib/features/rating/ratingSlice';
 
 const RatingModal = ({ ratingModal, setRatingModal }) => {
 
+    const dispatch = useDispatch();
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState('');
 
     const handleSubmit = async () => {
-        if (rating < 0 || rating > 5) {
-            return toast('Please select a rating');
+        if (rating <= 0 || rating > 5) {
+            throw new Error('Please select a rating');
         }
-        if (review.length < 5) {
-            return toast('write a short review');
-        }
-
+        dispatch(addRating({
+            id: `rating_${Date.now()}`,
+            orderId: ratingModal.orderId,
+            productId: ratingModal.productId,
+            rating,
+            review: review.trim(),
+            createdAt: new Date().toISOString(),
+        }))
         setRatingModal(null);
     }
 
@@ -44,7 +51,11 @@ const RatingModal = ({ ratingModal, setRatingModal }) => {
                     value={review}
                     onChange={(e) => setReview(e.target.value)}
                 ></textarea>
-                <button onClick={e => toast.promise(handleSubmit(), { loading: 'Submitting...' })} className='w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition'>
+                <button onClick={() => toast.promise(handleSubmit(), {
+                    loading: 'Submitting...',
+                    success: 'Rating submitted',
+                    error: (error) => error.message || 'Unable to submit rating',
+                })} className='w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition'>
                     Submit Rating
                 </button>
             </div>

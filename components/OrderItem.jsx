@@ -36,12 +36,12 @@ const OrderItem = ({ order }) => {
                                     <div>
                                         {ratings.find(rating => order.id === rating.orderId && item.product.id === rating.productId)
                                             ? <Rating value={ratings.find(rating => order.id === rating.orderId && item.product.id === rating.productId).rating} />
-                                            : <button onClick={() => setRatingModal({ orderId: order.id, productId: item.product.id })} className={`text-green-500 hover:bg-green-50 transition ${order.status !== "DELIVERED" && 'hidden'}`}>Rate Product</button>
+                                            : <button onClick={() => setRatingModal({ orderId: order.id, productId: item.product.id })} className={`text-green-500 hover:bg-green-50 transition ${order.status !== "DELIVERED" ? 'hidden' : ''}`}>Rate Product</button>
                                         }</div>
-                                    {ratingModal && <RatingModal ratingModal={ratingModal} setRatingModal={setRatingModal} />}
                                 </div>
                             </div>
                         ))}
+                        {ratingModal && <RatingModal ratingModal={ratingModal} setRatingModal={setRatingModal} />}
                     </div>
                 </td>
 
@@ -57,7 +57,7 @@ const OrderItem = ({ order }) => {
                     <div
                         className={`flex items-center justify-center gap-1 rounded-full p-1 ${order.status === 'confirmed'
                             ? 'text-yellow-500 bg-yellow-100'
-                            : order.status === 'delivered'
+                            : order.status === 'DELIVERED'
                                 ? 'text-green-500 bg-green-100'
                                 : 'text-slate-500 bg-slate-100'
                             }`}

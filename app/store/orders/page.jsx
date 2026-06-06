@@ -11,14 +11,29 @@ export default function StoreOrders() {
 
 
     const fetchOrders = async () => {
-       setOrders(orderDummyData)
-       setLoading(false)
+        let savedOrders = []
+        try {
+            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]')
+        } catch {
+            savedOrders = []
+        }
+
+        setOrders([
+            ...(Array.isArray(savedOrders) ? savedOrders : []),
+            ...orderDummyData,
+        ])
+        setLoading(false)
     }
 
     const updateOrderStatus = async (orderId, status) => {
-        // Logic to update the status of an order
+        const nextOrders = orders.map(order => (
+            order.id === orderId ? { ...order, status, updatedAt: new Date().toISOString() } : order
+        ))
+        setOrders(nextOrders)
+        setSelectedOrder(current => current?.id === orderId ? { ...current, status } : current)
 
-
+        const savedOrders = nextOrders.filter(order => order.id.startsWith('order_'))
+        localStorage.setItem('gocart_orders', JSON.stringify(savedOrders))
     }
 
     const openModal = (order) => {

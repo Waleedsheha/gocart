@@ -1,33 +1,32 @@
 'use client'
-import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
 import Image from "next/image"
-import Loading from "@/components/Loading"
-import { productDummyData } from "@/assets/assets"
+import { useDispatch, useSelector } from "react-redux"
+import { toggleProductStock } from "@/lib/features/product/productSlice"
 
 export default function StoreManageProducts() {
 
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$'
 
-    const [loading, setLoading] = useState(true)
-    const [products, setProducts] = useState([])
-
-    const fetchProducts = async () => {
-        setProducts(productDummyData)
-        setLoading(false)
-    }
+    const products = useSelector(state => state.product.list)
+    const dispatch = useDispatch()
 
     const toggleStock = async (productId) => {
-        // Logic to toggle the stock of a product
+        let savedProducts = []
+        try {
+            savedProducts = JSON.parse(localStorage.getItem('gocart_products') || '[]')
+        } catch {
+            savedProducts = []
+        }
+        const savedProductIds = new Set(Array.isArray(savedProducts) ? savedProducts.map(product => product.id) : [])
+        const nextProducts = products.map(product => (
+            product.id === productId ? { ...product, inStock: !product.inStock } : product
+        ))
+        const nextSavedProducts = nextProducts.filter(product => savedProductIds.has(product.id))
 
-
+        dispatch(toggleProductStock(productId))
+        localStorage.setItem('gocart_products', JSON.stringify(nextSavedProducts))
     }
-
-    useEffect(() => {
-            fetchProducts()
-    }, [])
-
-    if (loading) return <Loading />
 
     return (
         <>
@@ -56,7 +55,11 @@ export default function StoreManageProducts() {
                             <td className="px-4 py-3">{currency} {product.price.toLocaleString()}</td>
                             <td className="px-4 py-3 text-center">
                                 <label className="relative inline-flex items-center cursor-pointer text-gray-900 gap-3">
-                                    <input type="checkbox" className="sr-only peer" onChange={() => toast.promise(toggleStock(product.id), { loading: "Updating data..." })} checked={product.inStock} />
+                                    <input type="checkbox" className="sr-only peer" onChange={() => toast.promise(toggleStock(product.id), {
+                                        loading: "Updating data...",
+                                        success: "Product updated",
+                                        error: "Unable to update product",
+                                    })} checked={product.inStock} />
                                     <div className="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:bg-green-600 transition-colors duration-200"></div>
                                     <span className="dot absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform duration-200 ease-in-out peer-checked:translate-x-4"></span>
                                 </label>
