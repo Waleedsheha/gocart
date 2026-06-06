@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import toast from "react-hot-toast"
 import { DeleteIcon } from "lucide-react"
 import { couponDummyData } from "@/assets/assets"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function AdminCoupons() {
 
@@ -20,14 +21,7 @@ export default function AdminCoupons() {
     })
 
     const fetchCoupons = async () => {
-        let savedCoupons = null
-        try {
-            const savedValue = localStorage.getItem('gocart_coupons')
-            savedCoupons = savedValue ? JSON.parse(savedValue) : null
-        } catch {
-            savedCoupons = null
-        }
-
+        const savedCoupons = readStorage('gocart_coupons', null)
         setCoupons(Array.isArray(savedCoupons) ? savedCoupons : couponDummyData)
     }
 
@@ -60,7 +54,7 @@ export default function AdminCoupons() {
 
         const nextCoupons = [coupon, ...coupons]
         setCoupons(nextCoupons)
-        localStorage.setItem('gocart_coupons', JSON.stringify(nextCoupons))
+        writeStorage('gocart_coupons', nextCoupons)
         setNewCoupon({
             code: '',
             description: '',
@@ -80,7 +74,7 @@ export default function AdminCoupons() {
     const deleteCoupon = async (code) => {
         const nextCoupons = coupons.filter(coupon => coupon.code !== code)
         setCoupons(nextCoupons)
-        localStorage.setItem('gocart_coupons', JSON.stringify(nextCoupons))
+        writeStorage('gocart_coupons', nextCoupons)
     }
 
     useEffect(() => {

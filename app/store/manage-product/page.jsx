@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast"
 import Image from "next/image"
 import { useDispatch, useSelector } from "react-redux"
 import { toggleProductStock } from "@/lib/features/product/productSlice"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function StoreManageProducts() {
 
@@ -12,12 +13,7 @@ export default function StoreManageProducts() {
     const dispatch = useDispatch()
 
     const toggleStock = async (productId) => {
-        let savedProducts = []
-        try {
-            savedProducts = JSON.parse(localStorage.getItem('gocart_products') || '[]')
-        } catch {
-            savedProducts = []
-        }
+        const savedProducts = readStorage('gocart_products', [])
         const savedProductIds = new Set(Array.isArray(savedProducts) ? savedProducts.map(product => product.id) : [])
         const nextProducts = products.map(product => (
             product.id === productId ? { ...product, inStock: !product.inStock } : product
@@ -25,7 +21,7 @@ export default function StoreManageProducts() {
         const nextSavedProducts = nextProducts.filter(product => savedProductIds.has(product.id))
 
         dispatch(toggleProductStock(productId))
-        localStorage.setItem('gocart_products', JSON.stringify(nextSavedProducts))
+        writeStorage('gocart_products', nextSavedProducts)
     }
 
     return (

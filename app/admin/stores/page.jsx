@@ -4,6 +4,7 @@ import StoreInfo from "@/components/admin/StoreInfo"
 import Loading from "@/components/Loading"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function AdminStores() {
 
@@ -11,12 +12,7 @@ export default function AdminStores() {
     const [loading, setLoading] = useState(true)
 
     const fetchStores = async () => {
-        let application = null
-        try {
-            application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
-        } catch {
-            application = null
-        }
+        const application = readStorage('gocart_store_application', null)
 
         setStores([
             ...storesDummyData,
@@ -33,10 +29,10 @@ export default function AdminStores() {
 
         setStores(nextStores)
         if (application) {
-            localStorage.setItem('gocart_store_application', JSON.stringify({
+            writeStorage('gocart_store_application', {
                 ...application,
                 updatedAt: new Date().toISOString(),
-            }))
+            })
         }
     }
 

@@ -4,6 +4,7 @@ import StoreInfo from "@/components/admin/StoreInfo"
 import Loading from "@/components/Loading"
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function AdminApprove() {
 
@@ -12,12 +13,7 @@ export default function AdminApprove() {
 
 
     const fetchStores = async () => {
-        let application = null
-        try {
-            application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
-        } catch {
-            application = null
-        }
+        const application = readStorage('gocart_store_application', null)
 
         setStores([
             ...(application?.status === 'pending' ? [application] : []),
@@ -29,12 +25,12 @@ export default function AdminApprove() {
     const handleApprove = async ({ storeId, status }) => {
         const store = stores.find(store => store.id === storeId)
         if (store) {
-            localStorage.setItem('gocart_store_application', JSON.stringify({
+            writeStorage('gocart_store_application', {
                 ...store,
                 status,
                 isActive: status === 'approved',
                 updatedAt: new Date().toISOString(),
-            }))
+            })
         }
         setStores(prev => prev.filter(store => store.id !== storeId))
         return status

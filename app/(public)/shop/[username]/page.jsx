@@ -7,6 +7,7 @@ import Loading from "@/components/Loading"
 import Image from "next/image"
 import { dummyStoreData } from "@/assets/assets"
 import { useSelector } from "react-redux"
+import { readStorage } from "@/lib/browserStorage"
 
 export default function StoreShop() {
 
@@ -18,13 +19,9 @@ export default function StoreShop() {
 
     const fetchStoreData = async () => {
         let store = dummyStoreData
-        try {
-            const application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
-            if (application?.status === 'approved' && application.username === username) {
-                store = application
-            }
-        } catch {
-            store = dummyStoreData
+        const application = readStorage('gocart_store_application', null)
+        if (application?.status === 'approved' && application.username === username) {
+            store = application
         }
 
         setStoreInfo(store)

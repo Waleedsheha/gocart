@@ -5,6 +5,7 @@ import Image from "next/image"
 import toast from "react-hot-toast"
 import Loading from "@/components/Loading"
 import { useRouter } from "next/navigation"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function CreateStore() {
 
@@ -37,12 +38,7 @@ export default function CreateStore() {
     })
 
     const fetchSellerStatus = async () => {
-        let application = null
-        try {
-            application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
-        } catch {
-            application = null
-        }
+        const application = readStorage('gocart_store_application', null)
 
         if (application?.status) {
             setAlreadySubmitted(true)
@@ -86,7 +82,7 @@ export default function CreateStore() {
             user: dummyUserData,
         }
 
-        localStorage.setItem('gocart_store_application', JSON.stringify(application))
+        writeStorage('gocart_store_application', application)
         setAlreadySubmitted(true)
         setStatus(application.status)
         setMessage('Your store application is pending admin review.')

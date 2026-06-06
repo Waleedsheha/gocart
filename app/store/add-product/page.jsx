@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 import { toast } from "react-hot-toast"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function StoreAddProduct() {
 
@@ -60,14 +61,10 @@ export default function StoreAddProduct() {
                 throw new Error('Offer price cannot be higher than actual price')
             }
 
+            const application = readStorage('gocart_store_application', null)
             let store = dummyStoreData
-            try {
-                const application = JSON.parse(localStorage.getItem('gocart_store_application') || 'null')
-                if (application?.status === 'approved') {
-                    store = application
-                }
-            } catch {
-                store = dummyStoreData
+            if (application?.status === 'approved') {
+                store = application
             }
 
             const imageUrls = await Promise.all(selectedImages.map(readFileAsDataUrl))
@@ -89,16 +86,11 @@ export default function StoreAddProduct() {
 
             dispatch(addProduct(product))
 
-            let savedProducts = []
-            try {
-                savedProducts = JSON.parse(localStorage.getItem('gocart_products') || '[]')
-            } catch {
-                savedProducts = []
-            }
+            const savedProducts = readStorage('gocart_products', [])
             const nextSavedProducts = Array.isArray(savedProducts)
                 ? [product, ...savedProducts.filter(savedProduct => savedProduct.id !== product.id)]
                 : [product]
-            localStorage.setItem('gocart_products', JSON.stringify(nextSavedProducts))
+            writeStorage('gocart_products', nextSavedProducts)
 
             setImages({ 1: null, 2: null, 3: null, 4: null })
             setProductInfo({ name: "", description: "", mrp: 0, price: 0, category: "" })

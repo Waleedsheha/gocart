@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { couponDummyData, dummyUserData } from '@/assets/assets';
 import { clearCart } from '@/lib/features/cart/cartSlice';
+import { readStorage, writeStorage } from '@/lib/browserStorage';
 
 const OrderSummary = ({ totalPrice, items }) => {
 
@@ -30,16 +31,8 @@ const OrderSummary = ({ totalPrice, items }) => {
             throw new Error('Enter a coupon code');
         }
 
-        let availableCoupons = couponDummyData;
-        try {
-            const savedCoupons = localStorage.getItem('gocart_coupons');
-            if (savedCoupons !== null) {
-                const parsedCoupons = JSON.parse(savedCoupons);
-                availableCoupons = Array.isArray(parsedCoupons) ? parsedCoupons : couponDummyData;
-            }
-        } catch {
-            availableCoupons = couponDummyData;
-        }
+        const savedCoupons = readStorage('gocart_coupons', null);
+        const availableCoupons = Array.isArray(savedCoupons) ? savedCoupons : couponDummyData;
 
         const matchedCoupon = availableCoupons.find(item => item.code.toUpperCase() === code);
         if (!matchedCoupon) {
@@ -91,14 +84,9 @@ const OrderSummary = ({ totalPrice, items }) => {
             user: dummyUserData,
         }
 
-        let savedOrders = [];
-        try {
-            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]');
-        } catch {
-            savedOrders = [];
-        }
+        const savedOrders = readStorage('gocart_orders', []);
         const nextOrders = Array.isArray(savedOrders) ? [order, ...savedOrders] : [order];
-        localStorage.setItem('gocart_orders', JSON.stringify(nextOrders));
+        writeStorage('gocart_orders', nextOrders);
 
         dispatch(clearCart());
         router.push('/orders')

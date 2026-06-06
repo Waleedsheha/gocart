@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import { makeStore } from '../lib/store'
 import { productDummyData } from '@/assets/assets'
 import { setProduct } from '@/lib/features/product/productSlice'
+import { readStorage, removeStorage } from '@/lib/browserStorage'
 
 export default function StoreProvider({ children }) {
   const storeRef = useRef(undefined)
@@ -14,7 +15,7 @@ export default function StoreProvider({ children }) {
 
   useEffect(() => {
     try {
-      const savedProducts = JSON.parse(localStorage.getItem('gocart_products') || '[]')
+      const savedProducts = readStorage('gocart_products', [])
       if (!Array.isArray(savedProducts) || savedProducts.length === 0) return
 
       const savedProductIds = new Set(savedProducts.map(product => product.id))
@@ -23,7 +24,7 @@ export default function StoreProvider({ children }) {
         ...productDummyData.filter(product => !savedProductIds.has(product.id)),
       ]))
     } catch {
-      localStorage.removeItem('gocart_products')
+      removeStorage('gocart_products')
     }
   }, [])
 

@@ -3,18 +3,14 @@ import PageTitle from "@/components/PageTitle"
 import { useEffect, useState } from "react";
 import OrderItem from "@/components/OrderItem";
 import { orderDummyData } from "@/assets/assets";
+import { readStorage } from "@/lib/browserStorage";
 
 export default function Orders() {
 
     const [orders, setOrders] = useState([]);
 
     useEffect(() => {
-        let savedOrders = [];
-        try {
-            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]');
-        } catch {
-            savedOrders = [];
-        }
+        const savedOrders = readStorage('gocart_orders', []);
 
         setOrders([
             ...(Array.isArray(savedOrders) ? savedOrders : []),

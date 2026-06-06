@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Loading from "@/components/Loading"
 import { orderDummyData } from "@/assets/assets"
+import { readStorage, writeStorage } from "@/lib/browserStorage"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -11,12 +12,7 @@ export default function StoreOrders() {
 
 
     const fetchOrders = async () => {
-        let savedOrders = []
-        try {
-            savedOrders = JSON.parse(localStorage.getItem('gocart_orders') || '[]')
-        } catch {
-            savedOrders = []
-        }
+        const savedOrders = readStorage('gocart_orders', [])
 
         setOrders([
             ...(Array.isArray(savedOrders) ? savedOrders : []),
@@ -33,7 +29,7 @@ export default function StoreOrders() {
         setSelectedOrder(current => current?.id === orderId ? { ...current, status } : current)
 
         const savedOrders = nextOrders.filter(order => order.id.startsWith('order_'))
-        localStorage.setItem('gocart_orders', JSON.stringify(savedOrders))
+        writeStorage('gocart_orders', savedOrders)
     }
 
     const openModal = (order) => {
